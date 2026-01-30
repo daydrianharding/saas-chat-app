@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAVArmor | Enterprise Script Protection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --accent: #00d4ff;
+            --bg: #050505;
+            --panel: #0a0a0f;
+            --border: rgba(102, 126, 234, 0.2);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(102, 126, 234, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(102, 126, 234, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.15) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Entry Modal - Shows "This script is protected" */
+        #entryModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #1a0b2e 0%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .protection-container {
+            text-align: center;
+            padding: 60px;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 0 100px rgba(102, 126, 234, 0.2);
+            max-width: 600px;
+            width: 90%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .protection-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: scan 3s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .shield-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.5));
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .brand-text {
+            font-size: 56px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .protected-notice {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: #00ff88;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 30px 0;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.2); }
+            50% { box-shadow: 0 0 20px 0 rgba(0, 255, 136, 0.4); }
+        }
+
+        .encryption-badges {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .enter-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 18px 60px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-top: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .enter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .enter-btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s;
+        }
+
+        .enter-btn:hover::after {
+            left: 100%;
+        }
+
+        /* Main Dashboard */
+        #dashboard {
+            display: none;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .main-card {
+            background: var(--panel);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .input-area {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 350px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #00ff88;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            padding: 20px;
+            resize: none;
+            outline: none;
+            transition: all 0.3s;
+            line-height: 1.6;
+        }
+
+        textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea::placeholder {
+            color: #444;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .option:hover {
+            background: rgba(102, 126, 234, 0.05);
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .option.active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: var(--primary);
+        }
+
+        .option-checkbox {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .option-info h3 {
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        .option-info p {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .action-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Result Section */
+        .result-section {
+            display: none;
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .result-box {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 12px;
+            padding: 25px;
+            position: relative;
+            margin-top: 20px;
+        }
+
+        .result-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #00ff88;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            color: #e0e0e0;
+            word-break: break-all;
+            line-height: 1.8;
+            user-select: all;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: #00ff88;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+        }
+
+        .security-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .security-info { grid-template-columns: 1fr; }
+            .brand-text { font-size: 36px; }
+        }
+
+        .info-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .info-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .warning-box {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            color: #ffc107;
+        }
+
+        .warning-box.show {
+            display: flex;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(0, 255, 136, 0.9);
+            color: #000;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 10001;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="glow"></div>
+
+    <!-- Entry Modal -->
+    <div id="entryModal">
+        <div class="protection-container">
+            <div class="shield-icon">🛡️</div>
+            <div class="brand-text">AAVArmor</div>
+            
+            <div class="protected-notice">
+                <span style="font-size: 24px;">🔒</span>
+                <span>This script is protected with AAVArmor</span>
+            </div>
+
+            <div class="encryption-badges">
+                <div class="badge">AES-256</div>
+                <div class="badge">Server-Side</div>
+                <div class="badge">Anti-Leak</div>
+                <div class="badge">Bytecode</div>
+            </div>
+
+            <p style="color: #888; margin-bottom: 30px; line-height: 1.6;">
+                Military-grade encryption for Lua scripts.<br>
+                Zero-knowledge architecture prevents unauthorized access.
+            </p>
+
+            <button class="enter-btn" onclick="enterDashboard()">Initialize Protection</button>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard">
+        <div class="header">
+            <div class="logo">AAVARMOR</div>
+            <div class="status">
+                <div class="status-dot"></div>
+                <span>System Secure</span>
+            </div>
+        </div>
+
+        <div class="main-card">
+            <div class="warning-box" id="warningBox">
+                ⚠️ Detected potentially unsafe functions in script (setclipboard, HttpGet, etc.). These will be neutralized.
+            </div>
+
+            <div class="section-title">Source Script</div>
+            <div class="input-area">
+                <textarea id="scriptInput" placeholder="-- Paste your Lua script here...
+-- It will be encrypted server-side and distributed via secure link only
+
+print('Hello World')"></textarea>
+            </div>
+
+            <div class="section-title">Protection Options</div>
+            <div class="options-grid">
+                <div class="option active" onclick="toggleOption(this, 'antiClipboard')">
+                    <input type="checkbox" class="option-checkbox" checked id="opt-clipboard">
+                    <div class="option-info">
+                        <h3>Block SetClipboard</h3>
+                        <p>Prevents script theft via clipboard</p>
+                    </div>
+                </div>
+
+                <div class="option active" onclick="toggleOption(this, 'antiHttp')">
+                    <input type="checkbox" class="option-checkbox" checked id="opt-http">
+                    <div class="option-info">
+                        <h3>Block HttpGet</h3>
+                        <p>Blocks unauthorized network requests</p>
+                    </div>
+                </div>
+
+                <div class="option active" onclick="toggleOption(this, 'antiDebug')">
+                    <input type="checkbox" class="option-checkbox" checked id="opt-debug">
+                    <div class="option-info">
+                        <h3>Anti-Debug</h3>
+                        <p>Detects and blocks debuggers</p>
+                    </div>
+                </div>
+
+                <div class="option active" onclick="toggleOption(this, 'bytecode')">
+                    <input type="checkbox" class="option-checkbox" checked id="opt-bytecode">
+                    <div class="option-info">
+                        <h3>Bytecode VM</h3>
+                        <p>Custom virtual machine execution</p>
+                    </div>
+                </div>
+
+                <div class="option" onclick="toggleOption(this, 'hwid')">
+                    <input type="checkbox" class="option-checkbox" id="opt-hwid">
+                    <div class="option-info">
+                        <h3>HWID Lock</h3>
+                        <p>Bind to specific hardware ID</p>
+                    </div>
+                </div>
+
+                <div class="option active" onclick="toggleOption(this, 'expire')">
+                    <input type="checkbox" class="option-checkbox" checked id="opt-expire">
+                    <div class="option-info">
+                        <h3>Auto-Expire</h3>
+                        <p>Link expires after 24 hours</p>
+                    </div>
+                </div>
+            </div>
+
+            <button class="action-btn" id="protectBtn" onclick="protectScript()">
+                <span>🛡️</span> Create Secure Link
+            </button>
+
+            <div class="result-section" id="resultSection">
+                <div class="result-label">
+                    <span>✓</span> Secure Distribution Link
+                </div>
+                <div class="result-box">
+                    <button class="copy-btn" onclick="copyToClipboard()">Copy Link</button>
+                    <div class="result-code" id="resultCode">
+                        <!-- Result appears here -->
+                    </div>
+                </div>
+
+                <div class="security-info">
+                    <div class="info-card">
+                        <div class="info-value" id="infoLines">0</div>
+                        <div class="info-label">Lines Encrypted</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-value" id="infoMethod">AES-256</div>
+                        <div class="info-label">Encryption</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-value" id="infoStatus">Active</div>
+                        <div class="info-label">Protection</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Copied to clipboard!</div>
+
+    <script>
+        // CONFIG: Change this to your GitHub/Railway backend URL
+        // If hosting HTML on same domain as API, leave as empty string for relative paths
+        const API_BASE = '';  // e.g., 'https://aavarmor-server.yourname.repl.co'
+        
+        let currentLoader = '';
+
+        function enterDashboard() {
+            document.getElementById('entryModal').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('entryModal').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                document.getElementById('dashboard').style.animation = 'slideUp 0.5s ease-out';
+            }, 500);
+        }
+
+        function toggleOption(element, optionName) {
+            element.classList.toggle('active');
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = element.classList.contains('active');
+            
+            // Visual feedback only - actual options sent to backend
+        }
+
+        function detectThreats(code) {
+            const threats = [
+                /setclipboard\s*\(/gi,
+                /game:HttpGet\s*\(/gi,
+                /loadstring\s*\(/gi,
+                /getfenv/gi,
+                /debug\./gi
+            ];
+            
+            return threats.some(pattern => pattern.test(code));
+        }
+
+        // Monitor input for threats
+        document.getElementById('scriptInput').addEventListener('input', function(e) {
+            const hasThreats = detectThreats(e.target.value);
+            const warningBox = document.getElementById('warningBox');
+            if (hasThreats) {
+                warningBox.classList.add('show');
+            } else {
+                warningBox.classList.remove('show');
+            }
+        });
+
+        async function protectScript() {
+            const script = document.getElementById('scriptInput').value;
+            const btn = document.getElementById('protectBtn');
+            
+            if (!script.trim()) {
+                alert('Please enter a script to protect');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading"></div> Encrypting Server-Side...';
+
+            try {
+                const options = {
+                    antiClipboard: document.getElementById('opt-clipboard').checked,
+                    antiHttp: document.getElementById('opt-http').checked,
+                    antiDebug: document.getElementById('opt-debug').checked,
+                    bytecode: document.getElementById('opt-bytecode').checked,
+                    hwid: document.getElementById('opt-hwid').checked,
+                    expire: document.getElementById('opt-expire').checked
+                };
+
+                const response = await fetch(`${API_BASE}/api/v1/protect`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ script, options })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentLoader = data.loader;
+                    document.getElementById('resultCode').textContent = data.loader;
+                    document.getElementById('resultSection').style.display = 'block';
+                    document.getElementById('infoLines').textContent = script.split('\n').length;
+                    
+                    // Scroll to result
+                    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    throw new Error(data.error || 'Protection failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to protect script. Make sure your backend server is running.\n\nError: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>🛡️</span> Create Secure Link';
+            }
+        }
+
+        function copyToClipboard() {
+            if (!currentLoader) return;
+            
+            navigator.clipboard.writeText(currentLoader).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            });
+        }
+
+        // Prevent leaving page with unsaved work
+        window.addEventListener('beforeunload', function(e) {
+            const script = document.getElementById('scriptInput').value;
+            if (script.length > 0 && !currentLoader) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>
